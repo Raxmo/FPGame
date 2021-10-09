@@ -3,9 +3,12 @@
 
 # TODO
   - [ ] First Person Game
-    - [ ] Aesthetics
-      - [ ] Chaotic static determines shade
-        - [ ] Randomly turn pixel on or off depending on shading value
+    - [x] Aesthetics
+      - [x] Chaotic static determines shade
+        - [x] Randomly turn pixel on or off depending on shading value
+    - [ ] Features
+      - [ ] Text
+        - [ ] SDF?
     - [ ] First Person View
       - [ ] Raycast rendering
         - [ ] Similar algorithm to Wolfenstein 3D

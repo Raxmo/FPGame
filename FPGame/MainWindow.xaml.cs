@@ -13,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Diagnostics;
 using System.Windows.Threading;
 
 namespace FPGame
@@ -28,14 +29,16 @@ namespace FPGame
 		public static extern void FreeConsole();
 
 		WriteableBitmap wbp;
-
 		public MainWindow()
 		{
 			InitializeComponent();
 			AllocConsole();
 
+			CurState = new StateDelegate(AnimateOpening);
+
+			sw.Start();
 			DT.Tick += new EventHandler(Update);
-			DT.Interval = new TimeSpan(0, 0, 0, 0, 10);
+			DT.Interval = new TimeSpan(0, 0, 0, 0, 15);
 		}
 
 		public byte[,] buffer;
@@ -56,9 +59,18 @@ namespace FPGame
 			MAINIMAGE.Source = wbp;
 
 			buffer = new byte[wbp.PixelWidth, wbp.PixelHeight];
+			for(int y = 0; y < buffer.GetLength(1); y++)
+			{
+				for (int x = 0; x < buffer.GetLength(0); x++)
+				{
+					buffer[x, y] = 127;
+				}
+			}
 			dbuffer = new byte[buffer.GetLength(0) * buffer.GetLength(1)];
 		}
 
+
+		double ScreenAlpha = 0.0;
 		public void DrawScreen()
 		{
 			rand.NextBytes(dbuffer);
@@ -68,7 +80,7 @@ namespace FPGame
 			{
 				for(int x = 0; x < buffer.GetLength(0); x++)
 				{
-					dbuffer[i] = (byte)(dbuffer[i] < buffer[x, y] ? 255 : 0);
+					dbuffer[i] = (byte)(dbuffer[i] < Math.Clamp(buffer[x, y], (byte)1, (byte)254) ? 255.0 * ScreenAlpha : 0);
 
 					i++;
 				}
@@ -89,26 +101,64 @@ namespace FPGame
 		{
 			INITSCREEN();
 			DT.Start();
+		}
 
+		double deltat = 1.0;
+		Stopwatch sw = new Stopwatch();
+		delegate void StateDelegate();
+		StateDelegate CurState;
+		public void Update(object sender, EventArgs e)
+		{
+			deltat = sw.ElapsedMilliseconds / 1000.0;
+			sw.Restart();
+
+			CurState();
+
+			DrawScreen();
+		}
+
+		void NULLSTATE() { return; }
+
+		double animpoint = -2;
+		void AnimateOpening()
+		{
+			Console.Write($"AnimOpening {animpoint}");
+			Console.CursorLeft = 0;
+
+			ScreenAlpha = Math.Clamp(animpoint / 10.0, 0, 1);
+			animpoint += deltat;
+
+			if (animpoint > 10.0)
+			{
+				animpoint = 0.0;
+				CurState = AnimOpening2;
+			}
+		}
+
+		void AnimOpening2()
+		{
 			for(int y = 0; y < buffer.GetLength(1); y++)
 			{
 				for(int x = 0; x < buffer.GetLength(0); x++)
 				{
-					double u = (double)x / buffer.GetLength(0);
-					double v = (double)y / buffer.GetLength(1);
 					double a = (double)buffer.GetLength(1) / buffer.GetLength(0);
+					double u = (x / (double)buffer.GetLength(0) - 0.5) * 2.0;
+					double v = (y / (double)buffer.GetLength(1) - 0.5) * 2.0 * a;
 
-					double px = u - 0.5;
-					double py = (v - 0.5) * a;
+					double d = Math.Clamp(2.0 - (Math.Sqrt(u * u + v * v) + animpoint), 0.0, 0.5);
 
-					buffer[x, y] = (byte)(255 * Math.Sqrt(px * px + py * py));
+					byte val = (byte)(255 * d);
+
+					buffer[x, y] = val;
 				}
 			}
-		}
 
-		public void Update(object sender, EventArgs e)
-		{
-			DrawScreen();
+			if(animpoint > 3.0)
+			{
+				CurState = NULLSTATE;
+			}
+
+			animpoint += deltat / 10.0;
 		}
 	}
 }
