@@ -122,9 +122,6 @@ namespace FPGame
 		double animpoint = -2;
 		void AnimateOpening()
 		{
-			Console.Write($"AnimOpening {animpoint}");
-			Console.CursorLeft = 0;
-
 			ScreenAlpha = Math.Clamp(animpoint / 10.0, 0, 1);
 			animpoint += deltat;
 
@@ -153,12 +150,101 @@ namespace FPGame
 				}
 			}
 
-			if(animpoint > 3.0)
+			if(animpoint > 2.5)
 			{
-				CurState = NULLSTATE;
+				CurState = RunGame;
 			}
 
 			animpoint += deltat / 10.0;
+		}
+
+		byte[,] Map =
+		{
+			{1, 1, 1, 1, 1, 1, 1, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 1, 1, 1, 1, 1, 1, 1 }
+		};
+
+		double playerx = 3;
+		double playery = 3;
+		double playera = 0;
+
+		double fov = 1;
+
+		double vdepth = 10;
+
+		void RunGame()
+		{
+			if(Keyboard.IsKeyDown(Key.A))
+			{
+				playera -= 1 * deltat;
+			}
+			if(Keyboard.IsKeyDown(Key.D))
+			{
+				playera += 1 * deltat;
+			}
+			if(Keyboard.IsKeyDown(Key.W))
+			{
+				playerx += Math.Sin(playera) * 0.5 * deltat;
+				playery += Math.Cos(playera) * 0.5 * deltat;
+			}
+			if (Keyboard.IsKeyDown(Key.S))
+			{
+				playerx -= Math.Sin(playera) * 0.5 * deltat;
+				playery -= Math.Cos(playera) * 0.5 * deltat;
+			}
+			//rendering
+			for (int x = 0; x < buffer.GetLength(0); x++)
+			{
+				double rayangle = (playera - fov / 2.0) + ((double)x / buffer.GetLength(0)) * fov;
+
+				double dist = 0;
+
+				//REFACTOR
+				bool hit = false;
+				double eyex = Math.Sin(rayangle);
+				double eyey = Math.Cos(rayangle);
+				while(!hit && dist < vdepth)
+				{
+					dist += 0.1;
+
+					int testx = (int)(playerx + eyex * dist);
+					int testy = (int)(playery + eyey * dist);
+
+					if(testx < 0 || testx >= Map.GetLength(0) || testy < 0 || testy >= Map.GetLength(1))
+					{
+						hit = true;
+						dist = vdepth;
+					}
+					else if(Map[testx, testy] == 1)
+					{
+						hit = true;
+					}
+				}
+
+				int ceiling = (int)((double)(buffer.GetLength(1) / 2.0) - buffer.GetLength(1) / (double)(dist));
+				int floor = buffer.GetLength(1) - ceiling;
+
+				for(int y = 0; y < buffer.GetLength(1); y++)
+				{
+					if(y < ceiling)
+					{
+						buffer[x, y] = 0;
+					}
+					else if (y < floor)
+					{
+						buffer[x, y] = 127;
+					}
+					else
+					{
+						buffer[x, y] = 32;
+					}
+				}
+			}
 		}
 	}
 }
