@@ -11,7 +11,8 @@
         - [ ] SDF?
     - [ ] First Person View
       - [ ] Raycast rendering
-        - [ ] Similar algorithm to Wolfenstein 3D
+        - [x] Similar algorithm to Wolfenstein 3D
+        - [ ] "Voxel" raycasting
       - [ ] Tile system
         - [ ] Multiple block heights
     - [ ] Interaction Scripting
