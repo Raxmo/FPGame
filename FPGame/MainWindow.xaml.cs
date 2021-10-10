@@ -38,7 +38,7 @@ namespace FPGame
 
 			sw.Start();
 			DT.Tick += new EventHandler(Update);
-			DT.Interval = new TimeSpan(0, 0, 0, 0, 15);
+			DT.Interval = new TimeSpan(0, 0, 0, 0, 10);
 		}
 
 		public byte[,] buffer;
@@ -112,6 +112,9 @@ namespace FPGame
 			deltat = sw.ElapsedMilliseconds / 1000.0;
 			sw.Restart();
 
+			Console.CursorLeft = 0;
+			Console.Write($"FPS: {(int)(1.0 / deltat)}   ");
+
 			CurState();
 
 			DrawScreen();
@@ -125,13 +128,14 @@ namespace FPGame
 			ScreenAlpha = Math.Clamp(animpoint / 10.0, 0, 1);
 			animpoint += deltat;
 
-			if (animpoint > 10.0)
+			if (ScreenAlpha == 1.0)
 			{
 				animpoint = 0.0;
-				CurState = AnimOpening2;
+				CurState = FadeInScene;
 			}
 		}
 
+		double Clarity = 0.0;
 		void AnimOpening2()
 		{
 			for(int y = 0; y < buffer.GetLength(1); y++)
@@ -152,7 +156,7 @@ namespace FPGame
 
 			if(animpoint > 2.5)
 			{
-				CurState = RunGame;
+				CurState = FadeInScene;
 			}
 
 			animpoint += deltat / 10.0;
@@ -161,90 +165,173 @@ namespace FPGame
 		byte[,] Map =
 		{
 			{1, 1, 1, 1, 1, 1, 1, 1 },
-			{1, 0, 0, 0, 0, 0, 0, 1 },
-			{1, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 1, 0, 0, 1 },
+			{1, 0, 0, 0, 1, 0, 0, 1 },
 			{1, 0, 0, 0, 0, 0, 0, 1 },
 			{1, 0, 0, 0, 0, 0, 0, 1 },
 			{1, 0, 0, 0, 0, 0, 0, 1 },
 			{1, 1, 1, 1, 1, 1, 1, 1 }
 		};
 
-		double playerx = 3;
-		double playery = 3;
-		double playera = 0;
+		double playerx = 4;
+		double playery = 1.5;
+		double playera = -0.5;
 
 		double fov = 1;
 
-		double vdepth = 10;
+		double vdepth = 5;
 
-		void RunGame()
+		void HandleInput()
 		{
-			if(Keyboard.IsKeyDown(Key.A))
+			#region Controlls
+			if (Keyboard.IsKeyDown(Key.A))
 			{
 				playera -= 1 * deltat;
 			}
-			if(Keyboard.IsKeyDown(Key.D))
+			if (Keyboard.IsKeyDown(Key.D))
 			{
 				playera += 1 * deltat;
 			}
-			if(Keyboard.IsKeyDown(Key.W))
+			if (Keyboard.IsKeyDown(Key.W))
 			{
-				playerx += Math.Sin(playera) * 0.5 * deltat;
-				playery += Math.Cos(playera) * 0.5 * deltat;
+				playerx += Math.Sin(playera) * 1 * deltat;
+				playery += Math.Cos(playera) * 1 * deltat;
+
+				if (Map[(int)playerx, (int)playery] == 1)
+				{
+					playerx -= Math.Sin(playera) * 1 * deltat;
+					playery -= Math.Cos(playera) * 1 * deltat;
+				}
 			}
 			if (Keyboard.IsKeyDown(Key.S))
 			{
-				playerx -= Math.Sin(playera) * 0.5 * deltat;
-				playery -= Math.Cos(playera) * 0.5 * deltat;
+				playerx -= Math.Sin(playera) * 1 * deltat;
+				playery -= Math.Cos(playera) * 1 * deltat;
+
+				if (Map[(int)playerx, (int)playery] == 1)
+				{
+					playerx += Math.Sin(playera) * 1 * deltat;
+					playery += Math.Cos(playera) * 1 * deltat;
+				}
 			}
-			//rendering
+			#endregion
+		}
+
+		void RenderScene(double ALPHA, double CLARITY)
+		{
 			for (int x = 0; x < buffer.GetLength(0); x++)
 			{
-				double rayangle = (playera - fov / 2.0) + ((double)x / buffer.GetLength(0)) * fov;
-
+				double rayangle = playera - fov / 2.0 + (double)x / buffer.GetLength(0) * fov;
 				double dist = 0;
 
 				//REFACTOR
+				// Calculate distence to wall
 				bool hit = false;
-				double eyex = Math.Sin(rayangle);
-				double eyey = Math.Cos(rayangle);
-				while(!hit && dist < vdepth)
+				double ax = Math.Sin(rayangle);
+				double ay = Math.Cos(rayangle);
+				double sx = Math.Sqrt(1 + (ay * ay) / (ax * ax));
+				double sy = Math.Sqrt(1 + (ax * ax) / (ay * ay));
+				double dx = 0;
+				double dy = 0;
+				int checkx = (int)playerx;
+				int checky = (int)playery;
+				int stepx;
+				int stepy;
+
+				if (ax < 0)
 				{
-					dist += 0.1;
+					stepx = -1;
+					dx = (playerx - (double)checkx) * sx;
+				}
+				else
+				{
+					stepx = 1;
+					dx = ((double)checkx + 1.0 - playerx) * sx;
+				}
+				if (ay < 0)
+				{
+					stepy = -1;
+					dy = (playery - (double)checky) * sy;
+				}
+				else
+				{
+					stepy = 1;
+					dy = ((double)checky - playery + 1) * sy;
+				}
 
-					int testx = (int)(playerx + eyex * dist);
-					int testy = (int)(playery + eyey * dist);
-
-					if(testx < 0 || testx >= Map.GetLength(0) || testy < 0 || testy >= Map.GetLength(1))
+				while (!hit && dist < vdepth)
+				{
+					if (dx < dy)
 					{
-						hit = true;
-						dist = vdepth;
+						checkx += stepx;
+						dist = dx;
+						dx += sx;
 					}
-					else if(Map[testx, testy] == 1)
+					else
 					{
-						hit = true;
+						checky += stepy;
+						dist = dy;
+						dy += sy;
+					}
+
+					if (checkx >= 0 && checkx < Map.GetLength(0) && checky >= 0 && checky < Map.GetLength(1))
+					{
+						if (Map[checkx, checky] == 1)
+						{
+							hit = true;
+						}
 					}
 				}
 
+
+
+				// Draw columns
+				dist = Math.Min(vdepth, dist);
 				int ceiling = (int)((double)(buffer.GetLength(1) / 2.0) - buffer.GetLength(1) / (double)(dist));
 				int floor = buffer.GetLength(1) - ceiling;
 
-				for(int y = 0; y < buffer.GetLength(1); y++)
+				for (int y = 0; y < buffer.GetLength(1); y++)
 				{
-					if(y < ceiling)
+					if (y < ceiling)
 					{
 						buffer[x, y] = 0;
 					}
 					else if (y < floor)
 					{
-						buffer[x, y] = 127;
+						double alpha = (vdepth - dist) / vdepth;
+						buffer[x, y] = (byte)(255 * alpha);
 					}
 					else
 					{
 						buffer[x, y] = 32;
 					}
+
+					double VAL = buffer[x, y] * ALPHA;
+					double c = (1.0 - CLARITY) * 127 + CLARITY * VAL;
+					buffer[x, y] = (byte)c;
 				}
 			}
+		}
+
+		double SceneAlpha = 0;
+		void FadeInScene()
+		{
+			RenderScene(1.0, Clarity);
+			Clarity += deltat / 7;
+
+			if (Clarity >= 1.0)
+			{
+				CurState = RunGame;
+			}
+		}
+
+		void RunGame()
+		{
+
+			HandleInput();
+
+			//rendering
+			RenderScene(1.0, 1.0);
 		}
 	}
 }
