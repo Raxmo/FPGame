@@ -194,24 +194,30 @@ namespace FPGame
 			}
 			if (Keyboard.IsKeyDown(Key.W))
 			{
-				playerx += Math.Sin(playera) * 1 * deltat;
-				playery += Math.Cos(playera) * 1 * deltat;
+				double Tx = playerx + Math.Sin(playera) * 1 * deltat;
+				double Ty = playery + Math.Cos(playera) * 1 * deltat;
 
-				if (Map[(int)playerx, (int)playery] == 1)
+				if(Map[(int)Tx, (int)playery] == 0)
 				{
-					playerx -= Math.Sin(playera) * 1 * deltat;
-					playery -= Math.Cos(playera) * 1 * deltat;
+					playerx = Tx;
+				}
+				if(Map[(int)playerx, (int)Ty] == 0)
+				{
+					playery = Ty;
 				}
 			}
 			if (Keyboard.IsKeyDown(Key.S))
 			{
-				playerx -= Math.Sin(playera) * 1 * deltat;
-				playery -= Math.Cos(playera) * 1 * deltat;
+				double Tx = playerx - Math.Sin(playera) * 1 * deltat;
+				double Ty = playery - Math.Cos(playera) * 1 * deltat;
 
-				if (Map[(int)playerx, (int)playery] == 1)
+				if (Map[(int)Tx, (int)playery] == 0)
 				{
-					playerx += Math.Sin(playera) * 1 * deltat;
-					playery += Math.Cos(playera) * 1 * deltat;
+					playerx = Tx;
+				}
+				if (Map[(int)playerx, (int)Ty] == 0)
+				{
+					playery = Ty;
 				}
 			}
 			#endregion
@@ -290,6 +296,9 @@ namespace FPGame
 				int ceiling = (int)((double)(buffer.GetLength(1) / 2.0) - buffer.GetLength(1) / (double)(dist));
 				int floor = buffer.GetLength(1) - ceiling;
 
+				double u = (playerx + ax * dist) % 1.0;
+				double v = (playery + ay * dist) % 1.0;
+
 				for (int y = 0; y < buffer.GetLength(1); y++)
 				{
 					if (y < ceiling)
@@ -298,12 +307,22 @@ namespace FPGame
 					}
 					else if (y < floor)
 					{
-						double alpha = (vdepth - dist) / vdepth;
-						buffer[x, y] = (byte)(255 * alpha);
+						if (hit && Math.Abs(u - 0.5) >= 0.49 && Math.Abs(v - 0.5) >= 0.49)
+						{
+							buffer[x, y] = 0;
+						}
+						else
+						{
+							double alpha = (vdepth - dist) / vdepth;
+							buffer[x, y] = (byte)(255 * alpha);
+						}
 					}
 					else
 					{
-						buffer[x, y] = 32;
+						double vy = (y - buffer.GetLength(1) / 2.0) / buffer.GetLength(1) * 2.0 - (2.0 / vdepth);
+						double vv = vy * 255;
+
+						buffer[x, y] = (byte)vv;
 					}
 
 					double VAL = buffer[x, y] * ALPHA;
