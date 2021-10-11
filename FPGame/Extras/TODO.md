@@ -12,8 +12,22 @@
     - [ ] First Person View
       - [ ] Raycast rendering
         - [x] Similar algorithm to Wolfenstein 3D
-        - [ ] "Voxel" raycasting
+        - [ ] Sprites
+          - [ ] clarity mask sprites
+          - [ ] SDF sprites
+          - [ ] Clasic sprites
       - [ ] Tile system
         - [ ] Multiple block heights
+        - [ ] Floors
+         * [x] basic tiles
+         - [ ] textured tiles
+        - [ ] walls
+         * [x] basic tiles
+         - [ ] textured tiles
+        - [ ] ceilings
+         * [x] basic tiles
+         - [ ] textured tiles
+        - [ ] Portals
+        - [ ] doors
     - [ ] Interaction Scripting
       - [ ] Script similar to Furtasia

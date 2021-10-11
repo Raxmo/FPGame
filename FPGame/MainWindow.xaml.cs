@@ -164,13 +164,20 @@ namespace FPGame
 
 		byte[,] Map =
 		{
-			{1, 1, 1, 1, 1, 1, 1, 1 },
-			{1, 0, 0, 0, 1, 0, 0, 1 },
-			{1, 0, 0, 0, 1, 0, 0, 1 },
-			{1, 0, 0, 0, 0, 0, 0, 1 },
-			{1, 0, 0, 0, 0, 0, 0, 1 },
-			{1, 0, 0, 0, 0, 0, 0, 1 },
-			{1, 1, 1, 1, 1, 1, 1, 1 }
+			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+			{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 		};
 
 		double playerx = 4;
@@ -179,7 +186,7 @@ namespace FPGame
 
 		double fov = 1;
 
-		double vdepth = 5;
+		double vdepth = 10;
 
 		void HandleInput()
 		{
@@ -246,17 +253,19 @@ namespace FPGame
 
 					rowa += astep;
 
-					if(Math.Abs(u - 0.5) >= 0.49 || Math.Abs(v - 0.5) >= 0.49)
+					if(Math.Abs(u - 0.5) >= 0.48 || Math.Abs(v - 0.5) >= 0.48 || (Math.Abs(u - 0.5) <= 0.05 && Math.Abs(v - 0.5) <= 0.05))
 					{
 						buffer[x, y] = 0;
+						buffer[x, buffer.GetLength(1) - y - 1] = 0;
 					}
 					else
 					{
-						double alpha = 1.0 - (rowdist / vdepth);
+						double alpha = Math.Clamp(1.0 - (rowdist / vdepth), 0.0, 1.0);
 						buffer[x, y] = (byte)(alpha * 255);
+						buffer[x, buffer.GetLength(1) - y - 1] = (byte)(alpha * 255);
 					}
 
-					buffer[x, buffer.GetLength(1) - y - 1] = 0;
+					
 				}
 			}
 
@@ -334,11 +343,14 @@ namespace FPGame
 				double u = (playerx + ax * dist) % 1.0;
 				double v = (playery + ay * dist) % 1.0;
 
+				double tu = Math.Abs(u - v);
 				for (int y = 0; y < buffer.GetLength(1); y++)
 				{
-					if (y < floor && y > ceiling)
+					double tv = (double)(y - ceiling) / (floor - ceiling);
+
+					if (y > ceiling && y < floor)
 					{
-						if (hit && Math.Abs(u - 0.5) >= 0.49 && Math.Abs(v - 0.5) >= 0.49)
+						if (hit && Math.Abs(tu - 0.5) >= 0.48 || Math.Abs(tv - 0.5) >= 0.48 || (Math.Abs(tu - 0.5) <= 0.05 && Math.Abs(tv - 0.5) <= 0.05))
 						{
 							buffer[x, y] = 0;
 						}
