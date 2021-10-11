@@ -225,6 +225,41 @@ namespace FPGame
 
 		void RenderScene(double ALPHA, double CLARITY)
 		{
+			double astep = fov / buffer.GetLength(0);
+
+			for(int y = buffer.GetLength(1) / 2; y < buffer.GetLength(1); y++)
+			{
+				int p = (y - (buffer.GetLength(1) / 2));
+
+				double posZ = buffer.GetLength(1);
+
+				double rowa = playera - fov / 2.0;
+
+				double rowdist = posZ / p;
+				for(int x = 0; x < buffer.GetLength(0); x++)
+				{
+					double floorx = playerx + Math.Sin(rowa) * rowdist;
+					double floory = playery + Math.Cos(rowa) * rowdist;
+
+					double u = floorx % 1.0;
+					double v = floory % 1.0;
+
+					rowa += astep;
+
+					if(Math.Abs(u - 0.5) >= 0.49 || Math.Abs(v - 0.5) >= 0.49)
+					{
+						buffer[x, y] = 0;
+					}
+					else
+					{
+						double alpha = 1.0 - (rowdist / vdepth);
+						buffer[x, y] = (byte)(alpha * 255);
+					}
+
+					buffer[x, buffer.GetLength(1) - y - 1] = 0;
+				}
+			}
+
 			for (int x = 0; x < buffer.GetLength(0); x++)
 			{
 				double rayangle = playera - fov / 2.0 + (double)x / buffer.GetLength(0) * fov;
@@ -301,11 +336,7 @@ namespace FPGame
 
 				for (int y = 0; y < buffer.GetLength(1); y++)
 				{
-					if (y < ceiling)
-					{
-						buffer[x, y] = 0;
-					}
-					else if (y < floor)
+					if (y < floor && y > ceiling)
 					{
 						if (hit && Math.Abs(u - 0.5) >= 0.49 && Math.Abs(v - 0.5) >= 0.49)
 						{
@@ -316,13 +347,6 @@ namespace FPGame
 							double alpha = (vdepth - dist) / vdepth;
 							buffer[x, y] = (byte)(255 * alpha);
 						}
-					}
-					else
-					{
-						double vy = (y - buffer.GetLength(1) / 2.0) / buffer.GetLength(1) * 2.0 - (2.0 / vdepth);
-						double vv = vy * 255;
-
-						buffer[x, y] = (byte)vv;
 					}
 
 					double VAL = buffer[x, y] * ALPHA;
