@@ -104,13 +104,15 @@ namespace FPGame
 		}
 
 		double deltat = 1.0;
+		long totalT = 0;
 		Stopwatch sw = new Stopwatch();
 		delegate void StateDelegate();
 		StateDelegate CurState;
 		public void Update(object sender, EventArgs e)
 		{
-			deltat = sw.ElapsedMilliseconds / 1000.0;
-			sw.Restart();
+			long NT = sw.ElapsedMilliseconds;
+			deltat = (NT - totalT) / 1000.0;
+			totalT = NT;
 
 			Console.CursorLeft = 0;
 			Console.Write($"FPS: {(int)(1.0 / deltat)}   ");
@@ -186,10 +188,12 @@ namespace FPGame
 
 		double fov = 1;
 
-		double vdepth = 10;
+		double vdepth = 15;
 
 		void HandleInput()
 		{
+			double radius = 0.2;
+
 			#region Controlls
 			if (Keyboard.IsKeyDown(Key.A))
 			{
@@ -199,34 +203,57 @@ namespace FPGame
 			{
 				playera += 1 * deltat;
 			}
+
+			double DPX = 0;
+			double DPY = 0;
 			if (Keyboard.IsKeyDown(Key.W))
 			{
-				double Tx = playerx + Math.Sin(playera) * 1 * deltat;
-				double Ty = playery + Math.Cos(playera) * 1 * deltat;
-
-				if(Map[(int)Tx, (int)playery] == 0)
-				{
-					playerx = Tx;
-				}
-				if(Map[(int)playerx, (int)Ty] == 0)
-				{
-					playery = Ty;
-				}
+				DPX += Math.Sin(playera) * deltat;
+				DPY += Math.Cos(playera) * deltat;
 			}
 			if (Keyboard.IsKeyDown(Key.S))
 			{
-				double Tx = playerx - Math.Sin(playera) * 1 * deltat;
-				double Ty = playery - Math.Cos(playera) * 1 * deltat;
+				DPX -= Math.Sin(playera) * deltat;
+				DPY -= Math.Cos(playera) * deltat;
+			}
 
-				if (Map[(int)Tx, (int)playery] == 0)
+			double potpx = playerx + DPX;
+			double potpy = playery + DPY;
+
+			int scx = (int)(potpx - 1.0);
+			int scy = (int)(potpy - 1.0);
+			int ecx = (int)(potpx + 1.0);
+			int ecy = (int)(potpy + 1.0);
+
+			for(int cy = scy; cy <= ecy; cy++)
+			{
+				for(int cx = scx; cx <= ecx; cx++)
 				{
-					playerx = Tx;
-				}
-				if (Map[(int)playerx, (int)Ty] == 0)
-				{
-					playery = Ty;
+					if(Map[cx, cy] == 1)
+					{
+						double nx = Math.Clamp(potpx, cx, cx + 1);
+						double ny = Math.Clamp(potpy, cy, cy + 1);
+
+						double rx = nx - potpx;
+						double ry = ny - potpy;
+						double rm = Math.Sqrt(rx * rx + ry * ry);
+						double nrx = rx / rm;
+						double nry = ry / rm;
+
+						double ovlp = radius - rm;
+						if (double.IsNaN(ovlp)) ovlp = 0;
+
+						if(ovlp > 0)
+						{
+							potpx = potpx - nrx * ovlp;
+							potpy = potpy - nry * ovlp;
+						}
+					}
 				}
 			}
+
+			playerx = potpx;
+			playery = potpy;
 			#endregion
 		}
 
@@ -260,7 +287,8 @@ namespace FPGame
 					}
 					else
 					{
-						double alpha = Math.Clamp(1.0 - (rowdist / vdepth), 0.0, 1.0);
+						//double alpha = Math.Clamp(1.0 - (rowdist / vdepth), 0.0, 1.0);
+						double alpha = Math.Pow(1.0 / 255.0, rowdist / vdepth);
 						buffer[x, y] = (byte)(alpha * 255);
 						buffer[x, buffer.GetLength(1) - y - 1] = (byte)(alpha * 255);
 					}
@@ -356,7 +384,8 @@ namespace FPGame
 						}
 						else
 						{
-							double alpha = (vdepth - dist) / vdepth;
+							//double alpha = (vdepth - dist) / vdepth;
+							double alpha = Math.Pow(1.0 / 255.0, dist / vdepth);
 							buffer[x, y] = (byte)(255 * alpha);
 						}
 					}

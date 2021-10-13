@@ -1,5 +1,5 @@
-﻿# First Person game
-  A first person view interactive novel kinda game for who cares why.
+﻿# Dead Air
+  A first person view horror themed game.
 
 # TODO
   - [ ] First Person Game
@@ -27,6 +27,7 @@
         - [ ] ceilings
          * [x] basic tiles
          - [ ] textured tiles
+        - [ ] Sky map
         - [ ] Portals
         - [ ] doors
     - [ ] Interaction Scripting
