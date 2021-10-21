@@ -15,6 +15,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Diagnostics;
 using System.Windows.Threading;
+using System.IO;
 
 namespace FPGame
 {
@@ -32,9 +33,9 @@ namespace FPGame
 		public MainWindow()
 		{
 			InitializeComponent();
-			AllocConsole();
+			//AllocConsole();
 
-			CurState = new StateDelegate(AnimateOpening);
+			CurState = new StateDelegate(Starter);
 
 			sw.Start();
 			DT.Tick += new EventHandler(Update);
@@ -49,8 +50,8 @@ namespace FPGame
 		public void INITSCREEN()
 		{
 			wbp = new WriteableBitmap(
-				(int)MWin.ActualWidth,
-				(int)MWin.ActualHeight,
+				(int)800,
+				(int)450,
 				96,
 				96,
 				PixelFormats.Gray8,
@@ -67,8 +68,9 @@ namespace FPGame
 				}
 			}
 			dbuffer = new byte[buffer.GetLength(0) * buffer.GetLength(1)];
-		}
 
+			zbuff = new double[buffer.GetLength(0), buffer.GetLength(1)];
+		}
 
 		double ScreenAlpha = 0.0;
 		public void DrawScreen()
@@ -138,60 +140,56 @@ namespace FPGame
 		}
 
 		double Clarity = 0.0;
-		void AnimOpening2()
-		{
-			for(int y = 0; y < buffer.GetLength(1); y++)
-			{
-				for(int x = 0; x < buffer.GetLength(0); x++)
-				{
-					double a = (double)buffer.GetLength(1) / buffer.GetLength(0);
-					double u = (x / (double)buffer.GetLength(0) - 0.5) * 2.0;
-					double v = (y / (double)buffer.GetLength(1) - 0.5) * 2.0 * a;
-
-					double d = Math.Clamp(2.0 - (Math.Sqrt(u * u + v * v) + animpoint), 0.0, 0.5);
-
-					byte val = (byte)(255 * d);
-
-					buffer[x, y] = val;
-				}
-			}
-
-			if(animpoint > 2.5)
-			{
-				CurState = FadeInScene;
-			}
-
-			animpoint += deltat / 10.0;
-		}
 
 		byte[,] Map =
 		{
-			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
-			{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1 },
-			{1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1 },
-			{1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1 },
-			{1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1 },
-			{1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1 },
-			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
+			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+			{1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+			{1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+			{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1 },
+			{1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1 },
+			{1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 },
+			{1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1 },
+			{1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 },
+			{1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 },
+			{1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 },
+			{1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+			{1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1 },
+			{1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 },
+			{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1 },
+			{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1 },
+			{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1 },
+			{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1 },
+			{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1 },
+			{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 },
+			{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 		};
 
-		double playerx = 4;
-		double playery = 1.5;
-		double playera = -0.5;
+		double playerx = 1.5;
+		double playery = 7.5;
+		double playera = -1.0;
 
 		double fov = 1;
 
-		double vdepth = 15;
+		double vdepth = 7;
 
 		void HandleInput()
 		{
+			if (Map[(int)playery, (int)playerx] == 2) return;
+
 			double radius = 0.2;
 
 			#region Controlls
@@ -208,13 +206,13 @@ namespace FPGame
 			double DPY = 0;
 			if (Keyboard.IsKeyDown(Key.W))
 			{
-				DPX += Math.Sin(playera) * deltat;
-				DPY += Math.Cos(playera) * deltat;
+				DPX += Math.Cos(playera) * deltat;
+				DPY += Math.Sin(playera) * deltat;
 			}
 			if (Keyboard.IsKeyDown(Key.S))
 			{
-				DPX -= Math.Sin(playera) * deltat;
-				DPY -= Math.Cos(playera) * deltat;
+				DPX -= Math.Cos(playera) * deltat;
+				DPY -= Math.Sin(playera) * deltat;
 			}
 
 			double potpx = playerx + DPX;
@@ -229,7 +227,7 @@ namespace FPGame
 			{
 				for(int cx = scx; cx <= ecx; cx++)
 				{
-					if(Map[cx, cy] == 1)
+					if(Map[cy, cx] == 1 || (Map[cy, cx] == 2 && !HasSeen))
 					{
 						double nx = Math.Clamp(potpx, cx, cx + 1);
 						double ny = Math.Clamp(potpy, cy, cy + 1);
@@ -257,9 +255,45 @@ namespace FPGame
 			#endregion
 		}
 
+		double[,] zbuff;
+
+		double Epx = 14.5;
+		double Epy = 17.5;
+		double Efr = 0.0;
+		double Esr = 1;
+		bool HasSeen = false;
+
 		void RenderScene(double ALPHA, double CLARITY)
 		{
+			if (Map[(int)playery, (int)playerx] == 2)
+			{
+				for(int y = 0; y < buffer.GetLength(1); y++)
+				{
+					for(int x = 0; x < buffer.GetLength(0); x++)
+					{
+						buffer[x, y] = 127;
+					}
+				}
+				CurState = WinGame;
+				return;
+			}
+			bool AllBlack = true;
+
+			double EfrS = Math.Sqrt(Efr);
+
 			double astep = fov / buffer.GetLength(0);
+
+			double dpex = Epx - playerx;
+			double dpey = Epy - playery;
+			double dste = dpex * dpex + dpey * dpey;
+
+			double nearestsqrd = Math.Abs(Math.Sin(playera) * (playerx - Epx) - Math.Cos(playera) * (playery - Epy));
+
+			double Ea = Math.Atan2(dpey, dpex) - ((playera + Math.PI) % (Math.PI * 2) - Math.PI);
+			double Eax = (Ea / fov) + 0.5;
+			Eax *= buffer.GetLength(0);
+
+			double TEST = Eax >= 0 && Eax < buffer.GetLength(0) ? zbuff[(int)Eax, 244] : 0;
 
 			for(int y = buffer.GetLength(1) / 2; y < buffer.GetLength(1); y++)
 			{
@@ -272,8 +306,11 @@ namespace FPGame
 				double rowdist = posZ / p;
 				for(int x = 0; x < buffer.GetLength(0); x++)
 				{
-					double floorx = playerx + Math.Sin(rowa) * rowdist;
-					double floory = playery + Math.Cos(rowa) * rowdist;
+					zbuff[x, y] = rowdist;
+					zbuff[x, buffer.GetLength(1) - y - 1] = rowdist;
+
+					double floorx = playerx + Math.Cos(rowa) * rowdist;
+					double floory = playery + Math.Sin(rowa) * rowdist;
 
 					double u = floorx % 1.0;
 					double v = floory % 1.0;
@@ -287,13 +324,9 @@ namespace FPGame
 					}
 					else
 					{
-						//double alpha = Math.Clamp(1.0 - (rowdist / vdepth), 0.0, 1.0);
-						double alpha = Math.Pow(1.0 / 255.0, rowdist / vdepth);
-						buffer[x, y] = (byte)(alpha * 255);
-						buffer[x, buffer.GetLength(1) - y - 1] = (byte)(alpha * 255);
+						buffer[x, y] = (byte)(255);
+						buffer[x, buffer.GetLength(1) - y - 1] = (byte)(255);
 					}
-
-					
 				}
 			}
 
@@ -305,8 +338,8 @@ namespace FPGame
 				//REFACTOR
 				// Calculate distence to wall
 				bool hit = false;
-				double ax = Math.Sin(rayangle);
-				double ay = Math.Cos(rayangle);
+				double ax = Math.Cos(rayangle);
+				double ay = Math.Sin(rayangle);
 				double sx = Math.Sqrt(1 + (ay * ay) / (ax * ax));
 				double sy = Math.Sqrt(1 + (ax * ax) / (ay * ay));
 				double dx = 0;
@@ -337,6 +370,11 @@ namespace FPGame
 					dy = ((double)checky - playery + 1) * sy;
 				}
 
+				double U = 0.0;
+				double V = 0.0;
+
+				int tile = 0;
+
 				while (!hit && dist < vdepth)
 				{
 					if (dx < dy)
@@ -352,48 +390,105 @@ namespace FPGame
 						dy += sy;
 					}
 
-					if (checkx >= 0 && checkx < Map.GetLength(0) && checky >= 0 && checky < Map.GetLength(1))
+					if (checkx >= 0 && checkx < Map.GetLength(1) && checky >= 0 && checky < Map.GetLength(0))
 					{
-						if (Map[checkx, checky] == 1)
+						if (Map[checky, checkx] > 0)
 						{
+							tile = Map[checky, checkx];
+
 							hit = true;
+
+							dist = Math.Min(dist, vdepth);
+
+							U = Math.Clamp((playerx + ax * dist) - checkx, 0.0, 1.0);
+							V = Math.Clamp((playery + ay * dist) - checky, 0.0, 1.0);
 						}
 					}
 				}
 
-
-
 				// Draw columns
-				dist = Math.Min(vdepth, dist);
 				int ceiling = (int)((double)(buffer.GetLength(1) / 2.0) - buffer.GetLength(1) / (double)(dist));
 				int floor = buffer.GetLength(1) - ceiling;
+				dist = Math.Min(vdepth, dist);
 
-				double u = (playerx + ax * dist) % 1.0;
-				double v = (playery + ay * dist) % 1.0;
-
-				double tu = Math.Abs(u - v);
 				for (int y = 0; y < buffer.GetLength(1); y++)
 				{
+					zbuff[x, y] = Math.Min(zbuff[x, y], dist);
+
 					double tv = (double)(y - ceiling) / (floor - ceiling);
+					double tu = U * V + (1 - U) * (1 - V);
 
 					if (y > ceiling && y < floor)
 					{
-						if (hit && Math.Abs(tu - 0.5) >= 0.48 || Math.Abs(tv - 0.5) >= 0.48 || (Math.Abs(tu - 0.5) <= 0.05 && Math.Abs(tv - 0.5) <= 0.05))
+						double col = 1.0;
+						if(tile == 1)
 						{
-							buffer[x, y] = 0;
+							if((tv * 12.0) % 1.0 <= 0.1)
+							{
+								col = 0.0;
+							}
+							if((tu * 6.0 + (int)(tv * 12.0) / 2.0) % 1.0 <= 0.1)
+							{
+								col = 0.0;
+							}
 						}
-						else
+						else if(tile == 2)
 						{
-							//double alpha = (vdepth - dist) / vdepth;
-							double alpha = Math.Pow(1.0 / 255.0, dist / vdepth);
-							buffer[x, y] = (byte)(255 * alpha);
+							col = 0.5;
 						}
+
+						buffer[x, y] = (byte)(255 * col);
 					}
 
+					double vdist = Math.Clamp(zbuff[x, y] / vdepth, 0.0, 1.0);
+					double fog = 1.0 - (vdist * vdist);
+
+					buffer[x, y] = (byte)(buffer[x, y] * fog);
+
+					if(!HasSeen) HasSeen |= Eax > 0 && Eax < buffer.GetLength(0) && dste * 2.0  < vdepth * vdepth && dste < TEST * TEST && nearestsqrd < Esr * Esr;
+					else
+					{
+						
+						double vx = playerx + ax * zbuff[x, y];
+						double vy = playery + ay * zbuff[x, y];
+
+						double dvx = Epx - vx;
+						double dvy = Epy - vy;
+
+						double rs = dvx * dvx + dvy * dvy;
+
+						double fall = 1.0;
+
+						if (rs < Efr)
+						{
+							double kr = Math.Clamp((rs - Efr + EfrS) / EfrS, 0.0, 1.0);
+
+							double col = kr * buffer[x, y] + (1 - kr) * 0.0;
+
+							buffer[x, y] = (byte)(col);
+						}
+					}
 					double VAL = buffer[x, y] * ALPHA;
+					AllBlack &= buffer[x, y] == 0;
 					double c = (1.0 - CLARITY) * 127 + CLARITY * VAL;
 					buffer[x, y] = (byte)c;
+
 				}
+			}
+
+			if (AllBlack)
+			{
+				Clarity -= deltat / 10.0;
+			}
+			else
+			{
+				
+			}
+			Clarity = Math.Clamp(Clarity, 0.0, 1.0);
+
+			if(Clarity == 0.0 && HasSeen)
+			{
+				CurState = LooseGame;
 			}
 		}
 
@@ -405,17 +500,57 @@ namespace FPGame
 
 			if (Clarity >= 1.0)
 			{
+				Clarity = 1.0;
 				CurState = RunGame;
 			}
 		}
 
 		void RunGame()
 		{
-
 			HandleInput();
 
+			if (HasSeen)
+			{
+				Efr += deltat;
+				Map[2, 2] = 0;
+				MWin.Title = "GET OUT";
+			}
+
 			//rendering
-			RenderScene(1.0, 1.0);
+			RenderScene(1.0, Clarity);
+		}
+
+		double endtimer = 0.0;
+
+		void WinGame()
+		{
+			MWin.Title = "You've escaped";
+			ScreenAlpha -= deltat / 5.0;
+
+			ScreenAlpha = Math.Clamp(ScreenAlpha, 0.0, 1.0);
+
+			endtimer += deltat;
+
+			if (endtimer >= 10.0) MWin.Close();
+		}
+
+		void LooseGame()
+		{
+			MWin.Title = "You've been lost to the void";
+			ScreenAlpha = 0.0;
+			endtimer += deltat;
+
+			if (endtimer >= 5.0) MWin.Close();
+		}
+
+		void Starter()
+		{
+			MWin.Title = "Hit ENTER to begin...";
+			if (Keyboard.IsKeyDown(Key.Enter))
+			{
+				CurState = AnimateOpening;
+				MWin.Title = "Find it...";
+			}
 		}
 	}
 }

@@ -2,15 +2,15 @@
   A first person view horror themed game.
 
 # TODO
-  - [ ] First Person Game
+  - [x] First Person Game
     - [x] Aesthetics
       - [x] Chaotic static determines shade
         - [x] Randomly turn pixel on or off depending on shading value
     - [ ] Features
       - [ ] Text
         - [ ] SDF?
-    - [ ] First Person View
-      - [ ] Raycast rendering
+    - [x] First Person View
+      - [x] Raycast rendering
         - [x] Similar algorithm to Wolfenstein 3D
         - [ ] Sprites
           - [ ] clarity mask sprites
@@ -21,9 +21,9 @@
         - [ ] Floors
          * [x] basic tiles
          - [ ] textured tiles
-        - [ ] walls
+        - [x] walls
          * [x] basic tiles
-         - [ ] textured tiles
+         - [x] textured tiles
         - [ ] ceilings
          * [x] basic tiles
          - [ ] textured tiles
