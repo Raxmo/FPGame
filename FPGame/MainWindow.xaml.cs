@@ -116,8 +116,8 @@ namespace FPGame
 			deltat = (NT - totalT) / 1000.0;
 			totalT = NT;
 
-			Console.CursorLeft = 0;
-			Console.Write($"FPS: {(int)(1.0 / deltat)}   ");
+			//Console.CursorLeft = 0;
+			//Console.Write($"FPS: {(int)(1.0 / deltat)}   ");
 
 			CurState();
 
@@ -287,7 +287,12 @@ namespace FPGame
 			double dpey = Epy - playery;
 			double dste = dpex * dpex + dpey * dpey;
 
-			double nearestsqrd = Math.Abs(Math.Sin(playera) * (playerx - Epx) - Math.Cos(playera) * (playery - Epy));
+			double pax = Math.Cos(playera);
+			double pay = Math.Sin(playera);
+
+			double nearestsqrd = dste - ((pax * dpex + pay * dpey) * (pax * dpex + pay * dpey));
+
+			//MWin.Title = $"Nearest: {nearestsqrd}";
 
 			double Ea = Math.Atan2(dpey, dpex) - ((playera + Math.PI) % (Math.PI * 2) - Math.PI);
 			double Eax = (Ea / fov) + 0.5;
@@ -463,7 +468,9 @@ namespace FPGame
 						{
 							double kr = Math.Clamp((rs - Efr + EfrS) / EfrS, 0.0, 1.0);
 
-							double col = kr * buffer[x, y] + (1 - kr) * 0.0;
+							double col = buffer[x, y] * (kr * kr) + 127 * ((1.0 - kr) * kr);
+
+							//double col = kr * buffer[x, y] + (1 - kr) * 0.0;
 
 							buffer[x, y] = (byte)(col);
 						}
